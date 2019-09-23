@@ -5,48 +5,36 @@ import console from 'console';
 import slugify from 'slugify';
 import Sitemapper from 'sitemapper';
 import { URL } from 'url';
-import fs from 'fs';
+import fse from 'fs-extra';
 
-/**
- * A (somewhat sloppy) 'slugify' implmentation to make URLs safe(r) to appear
- * in a filename.
- * 
- * - Runs through slugify().
- * - Removes forward slashes with '-'
- * - Removes the lead and ending '-', né '/'.
- * 
- * @param String theURL 
- */
-function cleanUrlForFilename(theURL) {
-    let workingurl = new URL(theURL);
-    workingurl = workingurl.pathname;
-    if (null == workingurl) {
-        return Date.now() + "_unknownpath";
-    }
-    workingurl = workingurl.replace(/\//g, '-').substring(1, workingurl.length);
-    if (workingurl.substring(workingurl.length-1) == '-') {
-        workingurl = workingurl.substring(0, workingurl.length-1);
-    }
-    if ('' == workingurl) {
-        workingurl = 'root';
-    }
-    return slugify(
-        workingurl,
-        {
-            remove: /[*+~.()'"!:@]/g,
-            lower: true,
-            replacement: '-',
+function cleanURLToFileSystem(theURL) {
+    let urlObject = new URL(theURL);
+    let segments = urlObject.pathname.split('/');
+    
+    // Loop through and kill all the empty ones.
+    for (var i = 0; i < segments.length; i++) {
+        if (segments[i] === '') {
+            segments.splice(i, 1);
+            i--;
         }
-    );
-}
-
-function cleanDomainForDirectory(theURL) {
-    let workingurl = new URL(theURL);
-    workingurl = workingurl.hostname;
-        if (null == workingurl) {
-        return Date.now() + "_unknownpath";
     }
-    return slugify(workingurl);
+    const file = slugify(segments.pop()).replace('.', '-');
+    let path = '';
+    switch (segments.length) {
+        case 0:
+            path = '';
+            break;
+        case 1:
+            path = segments[0];
+            break;
+        default:
+            path = segments.join('/');
+    }
+    return {
+        host: urlObject.host,
+        path: path,
+        file: file,
+    };
 }
 
 /**
@@ -87,14 +75,16 @@ async function getBySitemap(options) {
  */
 async function getByURL(options) {
     console.log('-> Capturing %s...', options.url);
-    const dir = options.directory + '/' + cleanDomainForDirectory(options.url);
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir);
+    let fsdata = cleanURLToFileSystem(options.url);
+    fsdata.path = options.directory + '/' + fsdata.host + '/' + fsdata.path;
+    if (fsdata.file.length == 0) {
+        fsdata.file = 'root.png';
+    } else {
+        fsdata.file = fsdata.file + ".png";
     }
-    const filename = cleanUrlForFilename(options.url) + ".png";
-    const path = dir + '/' + filename;
-    // console.log(path);
+    fsdata.fullpath = (fsdata.path + '/' + fsdata.file).replace('//', '/');
 
+    fse.ensureDirSync(fsdata.path);
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     await page.setViewport({
@@ -103,11 +93,10 @@ async function getByURL(options) {
     });
     await page.goto(options.url, {"waitUntil" : "networkidle2"});
     await page.screenshot({
-        path: path,
+        path: fsdata.fullpath,
         fullPage: true,
     });
     await browser.close();
-
 }
 
 /**

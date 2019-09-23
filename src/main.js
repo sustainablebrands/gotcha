@@ -5,6 +5,7 @@ import console from 'console';
 import slugify from 'slugify';
 import Sitemapper from 'sitemapper';
 import { URL } from 'url';
+import fs from 'fs';
 
 /**
  * A (somewhat sloppy) 'slugify' implmentation to make URLs safe(r) to appear
@@ -26,6 +27,9 @@ function cleanUrlForFilename(theURL) {
     if (workingurl.substring(workingurl.length-1) == '-') {
         workingurl = workingurl.substring(0, workingurl.length-1);
     }
+    if ('' == workingurl) {
+        workingurl = 'root';
+    }
     return slugify(
         workingurl,
         {
@@ -34,6 +38,15 @@ function cleanUrlForFilename(theURL) {
             replacement: '-',
         }
     );
+}
+
+function cleanDomainForDirectory(theURL) {
+    let workingurl = new URL(theURL);
+    workingurl = workingurl.hostname;
+        if (null == workingurl) {
+        return Date.now() + "_unknownpath";
+    }
+    return slugify(workingurl);
 }
 
 /**
@@ -74,8 +87,13 @@ async function getBySitemap(options) {
  */
 async function getByURL(options) {
     console.log('-> Capturing %s...', options.url);
+    const dir = options.directory + '/' + cleanDomainForDirectory(options.url);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
     const filename = cleanUrlForFilename(options.url) + ".png";
-    const path = options.directory + '/' + filename;
+    const path = dir + '/' + filename;
+    // console.log(path);
 
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
@@ -83,7 +101,7 @@ async function getByURL(options) {
         width: 1440,
         height: 900,
     });
-    await page.goto(options.url);
+    await page.goto(options.url, {"waitUntil" : "networkidle2"});
     await page.screenshot({
         path: path,
         fullPage: true,

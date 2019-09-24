@@ -1,5 +1,5 @@
 {
-  "name": "puppet-ux",
+  "name": "@sustainablebrands/gotcha",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
@@ -15,5 +15,23 @@
   },
   "devDependencies": {
     "eslint": "^6.4.0"
-  }
+  },
+  "description": "A simple node-based Web page capture CLI.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sustainablebrands/gotcha.git"
+  },
+  "keywords": [
+    "puppeteer",
+    "screenshot",
+    "capture"
+  ],
+  "author": "Andrew Marconi <andrew@559labs.com> (https://559labs.com/)",
+  "bugs": {
+    "url": "https://github.com/sustainablebrands/gotcha/issues"
+  },
+  "homepage": "https://github.com/sustainablebrands/gotcha#readme"
 }

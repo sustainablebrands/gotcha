@@ -12,11 +12,11 @@ There are two ways that this command can be used:
 ### Get a Single URL
 
 ```bash
-gotcha https://example.com/full-path-url
+gotcha https://example.com/full-path-url/pagename
 ```
 
 This will save a PNG in the current directory called
-``example-com-full-path-url.png``.
+``./example.com/full-path-url/pagename.png``.
 
 ### Get a Full Sitemap
 
